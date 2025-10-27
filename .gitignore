@@ -1,0 +1,30 @@
+# Binarios
+gb-emulator
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de test
+*.test
+*.out
+
+# Archivos de Go
+vendor/
+go.work
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ROMs (no subir ROMs con copyright)
+*.gb
+*.gbc
+
+# Logs y datos de debug
+*.log
+debug/
