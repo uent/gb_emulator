@@ -1,6 +1,6 @@
 package gb
 
-import "github.com/hajimehoshi/ebiten"
+import "github.com/hajimehoshi/ebiten/v2"
 
 // Game implements ebiten.Game for the NES emulator
 type Game struct {

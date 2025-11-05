@@ -3,6 +3,7 @@ package gb
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -24,6 +25,30 @@ type PRGROM struct {
 	Data []byte // The actual PRG ROM data
 }
 
+// readFileBytes lee todos los bytes de un archivo y los devuelve
+// Parámetros:
+//   - filePath: ruta del archivo a leer
+//
+// Retorna:
+//   - []byte: contenido del archivo en bytes
+//   - error: error si ocurre algún problema durante la lectura
+func ReadFileBytes(filePath string) ([]byte, error) {
+	// Abrir el archivo
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error al abrir el archivo: %w", err)
+	}
+	defer file.Close()
+
+	// Leer todos los bytes del archivo
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("error al leer el archivo: %w", err)
+	}
+
+	return data, nil
+}
+
 func ReadGBFile(filePath string) (*GBHeader, *PRGROM, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -38,9 +63,9 @@ func ReadGBFile(filePath string) (*GBHeader, *PRGROM, error) {
 	}
 
 	// Verify magic number
-	if string(header.Magic[:]) != "NES\x1A" {
-		return nil, nil, fmt.Errorf("not a valid NES ROM file")
-	}
+	//if string(header.Magic[:]) != "GB\x1A" {
+	//	return nil, nil, fmt.Errorf("not a valid GB ROM file")
+	//}
 
 	// Load PRG ROM data (16 x PRGROMSize KB)
 	prgROMSize := int64(header.PRGROMSize) * 16 * 1024 // Convert to bytes

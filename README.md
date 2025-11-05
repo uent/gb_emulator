@@ -23,13 +23,14 @@ gb-emulator/
 │   │   ├── instruction_functions.go  # Implementación de instrucciones
 │   │   └── instruction_map.go        # Mapeo de opcodes
 │   ├── memory/           # Gestión de memoria y mapeo
-│   │   ├── memory.go            # Sistema de memoria principal
+│   │   ├── memory.go            # Sistema de memoria Game Boy completo
 │   │   └── memory_view.go       # Vistas y utilidades de memoria
 │   ├── gb/               # Lógica principal del emulador
 │   │   ├── gb.go                # Estructura principal del Game Boy
-│   │   ├── game.go              # Loop principal del juego
-│   │   └── rom.go               # Carga y gestión de ROMs
+│   │   ├── game.go              # Loop principal del juego (Ebiten)
+│   │   └── rom.go               # Carga y gestión de ROMs/Boot ROM
 │   └── config/           # Configuración interna (en desarrollo)
+├── roms/                 # Directorio para archivos ROM (.gb, .gbc)
 ├── gbctr.pdf             # Documentación técnica de referencia
 ├── go.mod                # Dependencias del proyecto
 └── go.sum                # Checksums de dependencias
@@ -44,16 +45,30 @@ gb-emulator/
   - Registros: A (Acumulador), B, C, D, E, H, L
   - Registros de 16-bit: PC (Program Counter), SP (Stack Pointer)
   - Flags: Z (Zero), N (Subtraction), H (Half Carry), C (Carry)
+  - PC inicializado correctamente en 0x0000
   - Sistema de ejecución de instrucciones por ciclos
   - Mapeo de opcodes y funciones de instrucción
+  - Instrucciones implementadas:
+    - 0x00: NOP (No Operation)
+    - 0x06: LD (Load Immediate)
+    - 0x41: LD (Load Register to Register)
 
 ### Memoria
 - Sistema de direccionamiento de 16-bit (0x0000 - 0xFFFF)
-- **Estado actual**: ⚠️ En desarrollo
-  - Lectura y escritura de memoria implementada
-  - Sistema de mapeo de direcciones
-  - Soporte para mirrors y bancos de memoria
-  - ⚠️ Nota: Actualmente usa estructura de memoria tipo NES, necesita adaptación a Game Boy
+- **Estado actual**: ✅ Implementado
+  - Mapa de memoria completo del Game Boy:
+    - 0x0000-0x3FFF: ROM Bank #0 (16KB) / Boot ROM
+    - 0x4000-0x7FFF: ROM Bank #1 switchable (16KB)
+    - 0x8000-0x9FFF: Video RAM (8KB)
+    - 0xA000-0xBFFF: External RAM switchable (8KB)
+    - 0xC000-0xDFFF: Work RAM (8KB)
+    - 0xE000-0xFDFF: Echo RAM
+    - 0xFE00-0xFE9F: OAM (Sprite Attribute Memory)
+    - 0xFF00-0xFF4B: I/O Ports
+    - 0xFF80-0xFFFE: High RAM (HRAM)
+    - 0xFFFF: Interrupt Enable Register
+  - Lectura de memoria implementada con soporte para Boot ROM
+  - Sistema de bancos de memoria preparado
 
 ### GPU/PPU (Picture Processing Unit)
 - Resolución: 160x144 píxeles
@@ -67,10 +82,14 @@ gb-emulator/
   - Gestión de ventana y entrada de usuario
 
 ### Cartridge / ROM
-- **Estado actual**: ⚠️ En desarrollo
-  - Sistema básico de carga de ROMs implementado
+- **Estado actual**: ✅ Implementado (básico)
+  - Función `LoadROM()` para cargar ROMs en memoria
+  - Función `LoadBootROM()` para cargar Boot ROM
+  - Utilidad `ReadFileBytes()` para lectura de archivos
+  - Soporte para ROMs en carpeta `roms/`
   - Pendiente: Soporte para diferentes MBC (Memory Bank Controllers)
-  - Pendiente: Manejo de RAM del cartucho
+  - Pendiente: Validación completa de headers de cartuchos
+  - Pendiente: Manejo de RAM del cartucho con persistencia
 
 ## Instalación
 
@@ -160,27 +179,34 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 
 ### ✅ Completado
 - Estructura base del proyecto
-- Sistema de CPU con registros y flags
+- Sistema de CPU con registros, flags y PC inicializado
 - Sistema de ejecución de instrucciones
+- Mapa de memoria completo del Game Boy (adaptado correctamente desde NES)
+- Carga de ROMs y Boot ROM en memoria
 - Dependencias de rendering (Ebiten v2)
+- Instrucciones básicas del CPU (NOP, LD)
 
 ### ⚠️ En Desarrollo
-- Sistema de memoria (requiere adaptación de NES a Game Boy)
-- Carga y gestión de ROMs
 - Sistema de Game Boy principal (estructuras base implementadas)
+- Escritura de memoria (función Write pendiente de completar)
+- Sistema de bancos de memoria conmutables (MBC)
 
 ### ❌ Pendiente
-- Implementación completa del set de instrucciones del CPU
+- Implementación completa del set de instrucciones del CPU (restantes ~500 instrucciones)
 - PPU/GPU para rendering de gráficos
-- Sistema de entrada (controles)
+- Sistema de entrada (controles/joypad)
 - Audio (APU)
+- Interrupciones
+- Timers
 - Debugging tools
 - Tests unitarios y de integración
+- Loop principal del emulador
 
 ### 📝 Notas Técnicas
-- Algunos componentes contienen código/comentarios de NES que necesitan ser adaptados a Game Boy
-- La arquitectura de memoria necesita ajustarse al mapa de memoria del Game Boy
+- ✅ El mapa de memoria ya está correctamente adaptado al Game Boy (no más referencias a NES)
+- La función `Write()` en memory.go necesita implementación completa
 - Se recomienda revisar el archivo `gbctr.pdf` para especificaciones técnicas del hardware
+- El sistema soporta Boot ROM para emular el inicio real del Game Boy
 
 ## Referencias
 

@@ -1,5 +1,11 @@
 package cpu
 
+// No operation. increment the pc on 1
+func NOP(cpu *Cpu) uint8 {
+
+	return 0
+}
+
 // LD r, r’: Load register (register)
 func LDRegister(cpu *Cpu) uint8 {
 	cpu.B = cpu.C

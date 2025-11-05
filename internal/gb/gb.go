@@ -44,10 +44,29 @@ func (n *GB) Reset() {
 	//n.Cycles = 0
 }
 
+func (n *GB) LoadBootROM(bootRomData []byte) error {
+
+	for i := 0; i < len(bootRomData); i++ {
+		if i == len(n.Cpu.RomBank0) {
+			panic("exceed memory")
+		}
+
+		n.Cpu.BootRomBank0[i] = bootRomData[i]
+	}
+
+	return nil
+}
+
 // LoadROM loads a ROM file into memory
 func (n *GB) LoadROM(romData []byte) error {
-	// Load PRG-ROM data directly
-	//n.Memory.LoadPRGROM(romData)
+
+	for i := 0; i < len(romData) && i < len(n.Cpu.RomBank0); i++ {
+		if i == len(n.Cpu.RomBank0) {
+			panic("exceed memory")
+		}
+
+		n.Cpu.RomBank0[i] = romData[i]
+	}
 
 	return nil
 }

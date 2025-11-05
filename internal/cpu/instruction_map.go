@@ -12,8 +12,9 @@ type Instruction struct {
 }
 
 var InstructionTable = map[byte]*Instruction{
-	0x41: &Instruction{Opcode: 0x41, Mnemonic: "LDRegister", IsIllegal: false, ExecuteFunc: LDRegister},
+	0x00: &Instruction{Opcode: 0x00, Mnemonic: "NOP", IsIllegal: false, ExecuteFunc: NOP},
 	0x06: &Instruction{Opcode: 0x06, Mnemonic: "LDInmediate", IsIllegal: false, ExecuteFunc: LDInmediate},
+	0x41: &Instruction{Opcode: 0x41, Mnemonic: "LDRegister", IsIllegal: false, ExecuteFunc: LDRegister},
 }
 
 // GetInstructionFunc returns the execution function for the given opcode

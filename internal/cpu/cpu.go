@@ -38,6 +38,7 @@ func NewCPU() *Cpu {
 }
 
 func (cpu *Cpu) initParams() {
+	cpu.PC = 0
 	// TODO
 }
 
