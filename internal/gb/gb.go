@@ -47,7 +47,7 @@ func (n *GB) Reset() {
 func (n *GB) LoadBootROM(bootRomData []byte) error {
 
 	for i := 0; i < len(bootRomData); i++ {
-		if i == len(n.Cpu.RomBank0) {
+		if i == len(n.Cpu.BootRomBank0) {
 			panic("exceed memory")
 		}
 

@@ -18,10 +18,12 @@ Este proyecto implementa un emulador del sistema Game Boy original (DMG - Dot Ma
 gb-emulator/
 ├── internal/
 │   ├── cpu/              # Emulación del CPU (Sharp LR35902)
-│   │   ├── cpu.go               # Estructura y registros del CPU
-│   │   ├── instruction_execution.go  # Ejecución de instrucciones
-│   │   ├── instruction_functions.go  # Implementación de instrucciones
-│   │   └── instruction_map.go        # Mapeo de opcodes
+│   │   ├── cpu.go                    # Estructura y registros del CPU con flags
+│   │   ├── instruction_execution.go  # Ejecución de instrucciones (1 y 2 bytes)
+│   │   ├── instruction_functions.go  # Implementación de instrucciones básicas
+│   │   ├── instruction_map.go        # Mapeo de opcodes y tabla CB
+│   │   ├── advances_functions.go     # Instrucciones avanzadas (prefijo CB)
+│   │   └── utils.go                  # Utilidades para manipulación de bytes
 │   ├── memory/           # Gestión de memoria y mapeo
 │   │   ├── memory.go            # Sistema de memoria Game Boy completo
 │   │   └── memory_view.go       # Vistas y utilidades de memoria
@@ -41,17 +43,35 @@ gb-emulator/
 ### CPU (Sharp LR35902)
 - Procesador 8-bit personalizado similar al Z80
 - Frecuencia: 4.19 MHz
-- **Estado actual**: ✅ Implementado
-  - Registros: A (Acumulador), B, C, D, E, H, L
+- **Estado actual**: ✅ Implementado (en expansión)
+  - Registros de 8-bit: A (High de AF), B, C, D, E, H, L
   - Registros de 16-bit: PC (Program Counter), SP (Stack Pointer)
-  - Flags: Z (Zero), N (Subtraction), H (Half Carry), C (Carry)
+  - Flags implementados como booleanos:
+    - ZFlag (Zero, bit 7 de AF)
+    - NFlag (Subtraction, bit 6 de AF)
+    - HFlag (Half Carry, bit 5 de AF)
+    - CFlag (Carry, bit 4 de AF)
   - PC inicializado correctamente en 0x0000
   - Sistema de ejecución de instrucciones por ciclos
   - Mapeo de opcodes y funciones de instrucción
-  - Instrucciones implementadas:
-    - 0x00: NOP (No Operation)
-    - 0x06: LD (Load Immediate)
-    - 0x41: LD (Load Register to Register)
+  - Soporte para instrucciones de 2 bytes (prefijo 0xCB)
+  - **Instrucciones implementadas** (13 instrucciones base + 1 avanzada):
+    - 0x00: NOP - No Operation
+    - 0x06: LD B, d8 - Load immediate en registro B
+    - 0x0E: LD C, d8 - Load immediate en registro C
+    - 0x20: JR NZ, s8 - Jump relativo si Z flag = 0
+    - 0x21: LD HL, n16 - Load immediate 16-bit en HL
+    - 0x26: LD H, d8 - Load immediate en registro H
+    - 0x31: LD SP, n16 - Load immediate 16-bit en Stack Pointer
+    - 0x32: LD (HL-), A - Store A en dirección HL y decrementar HL
+    - 0x40: LD B, B - Load B en B
+    - 0x41: LD B, C - Load C en B
+    - 0xAF: XOR A - XOR de A consigo mismo (resultado siempre 0)
+    - 0xCB7C: BIT 7, H - Test bit 7 del registro H
+  - Utilidades implementadas:
+    - MovePC() - Movimiento del Program Counter
+    - jointBytesToUInt16() - Combinar bytes a uint16
+    - splitUInt16ToBytes() - Dividir uint16 en bytes
 
 ### Memoria
 - Sistema de direccionamiento de 16-bit (0x0000 - 0xFFFF)
@@ -179,34 +199,46 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 
 ### ✅ Completado
 - Estructura base del proyecto
-- Sistema de CPU con registros, flags y PC inicializado
-- Sistema de ejecución de instrucciones
+- Sistema de CPU con registros, flags (Z, N, H, C) y PC inicializado
+- Sistema de ejecución de instrucciones con soporte para opcodes de 1 y 2 bytes
 - Mapa de memoria completo del Game Boy (adaptado correctamente desde NES)
 - Carga de ROMs y Boot ROM en memoria
 - Dependencias de rendering (Ebiten v2)
-- Instrucciones básicas del CPU (NOP, LD)
+- **14 instrucciones del CPU** implementadas (LD, JR, XOR, BIT)
+- Funciones auxiliares para manipulación de datos (split/join bytes)
+- Método MovePC para gestión del Program Counter
+- Tabla de instrucciones avanzadas (prefijo CB)
 
 ### ⚠️ En Desarrollo
-- Sistema de Game Boy principal (estructuras base implementadas)
+- Sistema de Game Boy principal (estructuras base implementadas, integración con Boot ROM)
 - Escritura de memoria (función Write pendiente de completar)
 - Sistema de bancos de memoria conmutables (MBC)
+- Expansión del set de instrucciones del CPU (~230 restantes)
 
 ### ❌ Pendiente
-- Implementación completa del set de instrucciones del CPU (restantes ~500 instrucciones)
+- Implementación completa del set de instrucciones del CPU (~230 instrucciones restantes)
+- Instrucciones CB restantes (~250 instrucciones)
 - PPU/GPU para rendering de gráficos
 - Sistema de entrada (controles/joypad)
 - Audio (APU)
-- Interrupciones
+- Sistema de interrupciones completo
 - Timers
 - Debugging tools
 - Tests unitarios y de integración
-- Loop principal del emulador
+- Loop principal del emulador funcional
 
 ### 📝 Notas Técnicas
 - ✅ El mapa de memoria ya está correctamente adaptado al Game Boy (no más referencias a NES)
+- ✅ Flags del CPU implementados como booleanos separados para mejor claridad
+- ✅ Soporte para instrucciones de 2 bytes con prefijo CB implementado
+- ✅ Funciones auxiliares para conversión byte ↔ uint16 (little-endian)
 - La función `Write()` en memory.go necesita implementación completa
 - Se recomienda revisar el archivo `gbctr.pdf` para especificaciones técnicas del hardware
 - El sistema soporta Boot ROM para emular el inicio real del Game Boy
+- Referencias de documentación integradas en el código:
+  - [CPU Registers and Flags](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html)
+  - [GB Opcodes Generator](https://meganesu.github.io/generate-gb-opcodes/)
+  - [RGBDS Instruction Set](https://rgbds.gbdev.io/docs/v0.9.4/gbz80.7)
 
 ## Referencias
 

@@ -5,19 +5,24 @@ import (
 	"gb-emulator/internal/memory"
 )
 
+// Documentation
+// * https://gbdev.io/pandocs/CPU_Registers_and_Flags.html
+
 type Cpu struct {
-	PC uint16 // Program Counter/Pointer
-	SP uint16 // Stack Pointer
-	A  byte   // Accumulator
-	R  byte   // Register
-	IR byte   // instruction Register
-	IE byte   // Interrupt Enable
-	B  byte   // BC
-	C  byte
-	D  byte // DE
-	E  byte
-	H  byte // HL
-	L  byte
+	PC    uint16 // Program Counter/Pointer
+	SP    uint16 // Stack Pointer
+	A     byte   // high part of the AF register
+	B     byte
+	C     byte
+	D     byte
+	E     byte
+	H     byte
+	L     byte
+	ZFlag bool // bit 7 of AF
+	NFlag bool // bit 6 of AF
+	HFlag bool // bit 5 of AF
+	CFlag bool // bit 4 of AF, also CY, also carry flag
+
 	memory.Memory
 }
 
@@ -39,29 +44,32 @@ func NewCPU() *Cpu {
 
 func (cpu *Cpu) initParams() {
 	cpu.PC = 0
+	cpu.Boot = true
 	// TODO
 }
 
 // Step executes a single CPU instruction
 func (c *Cpu) Step() (uint8, error) {
-	// Check for interrupts first
-	//if c.nmiPending || c.irqPending {
-	//	return c.handleInterrupts(), nil
-	//}
 
 	// Read opcode
 	var cycles uint8
 	opcode := c.Memory.Read(c.PC)
 
 	// Get the execution function for the instruction
-	executeFunc := GetInstructionFunc(opcode)
+	executeFunc := c.GetInstructionFunc(opcode)
 	if executeFunc != nil {
 		cycles = executeFunc.ExecuteFunc(c)
 	} else {
 		return 0, fmt.Errorf("missing method for instruction opcode: %02X", opcode)
 	}
 
+	//c.PC++
+
 	return cycles, nil // Return cycles used and no error
+}
+
+func (c *Cpu) MovePC(offset uint16) {
+	c.PC = c.PC + offset
 }
 
 // Arithmetic Logic Unit
