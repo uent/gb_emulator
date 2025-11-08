@@ -99,6 +99,28 @@ func LDHL_A(cpu *Cpu) uint8 {
 	return 2
 }
 
+// 0x3E: Load the 8-bit immediate operand d8 into register A.
+func LDAImmediate(cpu *Cpu) uint8 {
+
+	cpu.A = cpu.Read(cpu.PC + 1)
+
+	cpu.MovePC(2)
+	return 2
+}
+
+// 0x0C: Increment the contents of register C by 1.
+func INCC(cpu *Cpu) uint8 {
+	oldC := cpu.C
+	cpu.C++
+
+	cpu.ZFlag = cpu.C == 0
+	cpu.NFlag = false
+	cpu.HFlag = calculateHalfFlagIncrement(oldC)
+
+	cpu.MovePC(1)
+	return 1
+}
+
 // 0x0E: Load the 8-bit immediate operand d8 into register C.
 func LDCImmediate(cpu *Cpu) uint8 {
 
@@ -119,4 +141,15 @@ func XORA(cpu *Cpu) uint8 {
 
 	cpu.MovePC(1)
 	return 1
+}
+
+// 0xE2: Store the contents of register A in the internal RAM, port register, or mode register at the address in the range 0xFF00-0xFFFF specified by register C.
+func LDCA(cpu *Cpu) uint8 {
+
+	address := 0xFF00 + uint16(cpu.C)
+
+	cpu.Write(address, cpu.A)
+
+	cpu.MovePC(1)
+	return 2
 }

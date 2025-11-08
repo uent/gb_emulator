@@ -46,32 +46,38 @@ gb-emulator/
 - **Estado actual**: ✅ Implementado (en expansión)
   - Registros de 8-bit: A (High de AF), B, C, D, E, H, L
   - Registros de 16-bit: PC (Program Counter), SP (Stack Pointer)
-  - Flags implementados como booleanos:
-    - ZFlag (Zero, bit 7 de AF)
-    - NFlag (Subtraction, bit 6 de AF)
-    - HFlag (Half Carry, bit 5 de AF)
-    - CFlag (Carry, bit 4 de AF)
+  - Flags implementados como booleanos con documentación mejorada:
+    - ZFlag (Zero flag, bit 7 de AF) - Se activa cuando el resultado es 0
+    - NFlag (Subtraction flag / BCD, bit 6 de AF) - Indica operación de resta
+    - HFlag (Half Carry flag / BCD, bit 5 de AF) - Acarreo de los 4 bits bajos
+    - CFlag (Carry flag, bit 4 de AF) - Acarreo/préstamo general
   - PC inicializado correctamente en 0x0000
   - Sistema de ejecución de instrucciones por ciclos
   - Mapeo de opcodes y funciones de instrucción
   - Soporte para instrucciones de 2 bytes (prefijo 0xCB)
-  - **Instrucciones implementadas** (13 instrucciones base + 1 avanzada):
+  - **Instrucciones implementadas** (16 instrucciones base + 1 avanzada):
     - 0x00: NOP - No Operation
     - 0x06: LD B, d8 - Load immediate en registro B
+    - 0x0C: INC C - Incrementa registro C (con actualización de flags Z, N, H)
     - 0x0E: LD C, d8 - Load immediate en registro C
     - 0x20: JR NZ, s8 - Jump relativo si Z flag = 0
     - 0x21: LD HL, n16 - Load immediate 16-bit en HL
     - 0x26: LD H, d8 - Load immediate en registro H
     - 0x31: LD SP, n16 - Load immediate 16-bit en Stack Pointer
     - 0x32: LD (HL-), A - Store A en dirección HL y decrementar HL
+    - 0x3E: LD A, d8 - Load immediate en registro A
     - 0x40: LD B, B - Load B en B
     - 0x41: LD B, C - Load C en B
     - 0xAF: XOR A - XOR de A consigo mismo (resultado siempre 0)
+    - 0xE2: LD (C), A - Store A en dirección 0xFF00 + C (I/O ports)
     - 0xCB7C: BIT 7, H - Test bit 7 del registro H
   - Utilidades implementadas:
     - MovePC() - Movimiento del Program Counter
     - jointBytesToUInt16() - Combinar bytes a uint16
     - splitUInt16ToBytes() - Dividir uint16 en bytes
+    - calculateHalfFlagAdd() - Calcula half-carry flag para sumas
+    - calculateHalfFlagSubtract() - Calcula half-carry flag para restas
+    - calculateHalfFlagIncrement() - Calcula half-carry flag para incrementos
 
 ### Memoria
 - Sistema de direccionamiento de 16-bit (0x0000 - 0xFFFF)
@@ -199,15 +205,16 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 
 ### ✅ Completado
 - Estructura base del proyecto
-- Sistema de CPU con registros, flags (Z, N, H, C) y PC inicializado
+- Sistema de CPU con registros, flags (Z, N, H, C) documentados y PC inicializado
 - Sistema de ejecución de instrucciones con soporte para opcodes de 1 y 2 bytes
 - Mapa de memoria completo del Game Boy (adaptado correctamente desde NES)
 - Carga de ROMs y Boot ROM en memoria
 - Dependencias de rendering (Ebiten v2)
-- **14 instrucciones del CPU** implementadas (LD, JR, XOR, BIT)
-- Funciones auxiliares para manipulación de datos (split/join bytes)
+- **17 instrucciones del CPU** implementadas (LD, INC, JR, XOR, BIT)
+- Funciones auxiliares para manipulación de datos (split/join bytes, half-carry flags)
 - Método MovePC para gestión del Program Counter
 - Tabla de instrucciones avanzadas (prefijo CB)
+- Sistema de cálculo de half-carry flags para operaciones aritméticas
 
 ### ⚠️ En Desarrollo
 - Sistema de Game Boy principal (estructuras base implementadas, integración con Boot ROM)
@@ -229,9 +236,12 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 
 ### 📝 Notas Técnicas
 - ✅ El mapa de memoria ya está correctamente adaptado al Game Boy (no más referencias a NES)
-- ✅ Flags del CPU implementados como booleanos separados para mejor claridad
+- ✅ Flags del CPU implementados como booleanos separados con documentación detallada
 - ✅ Soporte para instrucciones de 2 bytes con prefijo CB implementado
 - ✅ Funciones auxiliares para conversión byte ↔ uint16 (little-endian)
+- ✅ Sistema de cálculo de half-carry flag para operaciones aritméticas (suma, resta, incremento)
+- ✅ Tabla de instrucciones simplificada (uso de inicialización de structs sin puntero explícito)
+- ✅ Directorio `roms/` disponible para almacenar archivos ROM (.gb, .gbc)
 - La función `Write()` en memory.go necesita implementación completa
 - Se recomienda revisar el archivo `gbctr.pdf` para especificaciones técnicas del hardware
 - El sistema soporta Boot ROM para emular el inicio real del Game Boy

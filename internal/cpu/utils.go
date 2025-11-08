@@ -11,3 +11,15 @@ func splitUInt16ToBytes(value uint16) (byte, byte) {
 
 	return high, low
 }
+
+func calculateHalfFlagAdd(oldValue byte, addedValue byte) bool {
+	return ((oldValue & 0x0F) + (addedValue & 0x0F)) > 0x0F
+}
+
+func calculateHalfFlagSubtract(oldValue byte, subtractedValue byte) bool {
+	return (oldValue & 0x0F) < (subtractedValue & 0x0F)
+}
+
+func calculateHalfFlagIncrement(oldValue byte) bool {
+	return (oldValue&0x0F)+1 > 0x0F
+}

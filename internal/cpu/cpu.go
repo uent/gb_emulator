@@ -18,9 +18,9 @@ type Cpu struct {
 	E     byte
 	H     byte
 	L     byte
-	ZFlag bool // bit 7 of AF
-	NFlag bool // bit 6 of AF
-	HFlag bool // bit 5 of AF
+	ZFlag bool // bit 7 of AF, Zero flag
+	NFlag bool // bit 6 of AF, Subtraction flag (BCD)
+	HFlag bool // bit 5 of AF, Half Carry flag (BCD)
 	CFlag bool // bit 4 of AF, also CY, also carry flag
 
 	memory.Memory
