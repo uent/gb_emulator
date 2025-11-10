@@ -23,3 +23,10 @@ func calculateHalfFlagSubtract(oldValue byte, subtractedValue byte) bool {
 func calculateHalfFlagIncrement(oldValue byte) bool {
 	return (oldValue&0x0F)+1 > 0x0F
 }
+
+func bool2u8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}

@@ -2,32 +2,9 @@ package memory
 
 import "fmt"
 
-//https://bgb.bircd.org/pandocs.htm
+// TODO: implement MBC1
 
-// -- 0000                       |
-// 16kB ROM bank #0 |						 |
-// -- 4000											 |
-// 16kB switchable ROM bank			 |= 32kB Cartrigbe
-// -- 8000											 |
-// 8kB Video RAM
-// -- A000
-// 8kB switchable RAM bank
-// -- C000
-// 8kB Internal RAM
-// -- E000
-// Echo of 8kB Internal RAM
-// -- FE00
-// Sprite Attrib Memory (OAM)
-// -- FEA0
-// Empty but unusable for I/O
-// -- FF00
-// I/O ports
-// -- FF4C
-// Empty but unusable for I/O
-// -- FF80
-// High RAM
-// -- FFFF
-// Interrupt Enable Register
+//https://bgb.bircd.org/pandocs.htm
 
 const (
 	InitialAddress = 0x0000
@@ -41,14 +18,17 @@ const (
 	VideoRamSize         = 0x2000
 	VideoRamStartAddress = SwitchableRomBankStartAddress + SwitchableRomBankSize
 
-	SwitchableRamBankSize         = 0x2000
+	SwitchableRamBankSize         = 0x2000 // external ram
 	SwitchableRamBankStartAddress = VideoRamStartAddress + VideoRamSize
 
-	InternalRamSize         = 0x2000
+	InternalRamSize         = 0x1000
 	InternalRamStartAddress = SwitchableRamBankStartAddress + SwitchableRamBankSize
 
-	EchoInternalRamSize         = 0x2000
-	EchoInternalRamStartAddress = InternalRamStartAddress + InternalRamSize
+	SwitchableRamSize         = 0x1000 // WRAM Bank 1 (or n)
+	SwitchableRamStartAddress = InternalRamStartAddress + InternalRamSize
+
+	EchoInternalRamSize         = 0x1E00
+	EchoInternalRamStartAddress = SwitchableRamStartAddress + SwitchableRamSize
 
 	OAMSize         = 0xA0
 	OAMStartAddress = EchoInternalRamStartAddress + EchoInternalRamSize
@@ -56,31 +36,32 @@ const (
 	EmptyIO1Size         = 0x60
 	EmptyIO1StartAddress = OAMStartAddress + OAMSize
 
-	IOPortSize         = 0x4C
+	IOPortSize         = 0x7F
 	IOPortStartAddress = EmptyIO1StartAddress + EmptyIO1Size
 
-	EmptyIO2Size         = 0x34
-	EmptyIO2StartAddress = IOPortStartAddress + IOPortSize
+	HighRamSize         = 0x7F // high speed ram
+	HighRamStartAddress = IOPortStartAddress + IOPortSize
 
-	HighRamSize         = 0x7F // also internal ram?
-	HighRamStartAddress = EmptyIO2StartAddress + EmptyIO2Size
+	IESize         = 0x0001
+	IEStartAddress = HighRamStartAddress + HighRamSize
 )
 
-// Memory represents the memory system of the NES
+// Memory represents the memory system of the GB
 type Memory struct {
-	RomBank0          [RomBank0Size]byte
 	BootRomBank0      [RomBank0Size]byte
+	RomBank0          [RomBank0Size]byte // reemplace BootRomBank0
 	SwitchableRomBank [SwitchableRomBankSize]byte
 	VideoRam          [VideoRamSize]byte
 	SwitchableRamBank [SwitchableRamBankSize]byte
 	InternalRam       [InternalRamSize]byte
-	EchoInternalRam   [EchoInternalRamSize]byte
+	SwitchableRam     [SwitchableRamSize]byte
+	EchoInternalRam   [EchoInternalRamSize]byte // not used
 	OAM               [OAMSize]byte
-	EmptyIO1          [EmptyIO1Size]byte
+	EmptyIO1          [EmptyIO1Size]byte // undetermined
 	IOPort            [IOPortSize]byte
-	EmptyIO2          [EmptyIO2Size]byte
 	HighRam           [HighRamSize]byte
-	Boot              bool // if is true, the console is booting
+	IE                [IESize]byte // Interrupt Enable Register (IE)
+	Boot              bool         // if is true, the console is booting
 }
 
 // New creates a new Memory instance
@@ -88,31 +69,46 @@ func New() *Memory {
 	// Create a new memory instance
 	m := &Memory{Boot: true}
 
-	// Initialize RAM (addresses 0x0000 to 0x07FF) with zeros
-	//for i := 0; i < 0x0800; i++ {
-	//	m.InternalRam[i] = 0
-	//}
-
 	return m
 }
 
-// Read returns a byte from the specified memory address
-func (m *Memory) Read(address uint16) byte {
+// Return the memory address of the requested byte
+func (m *Memory) getMemoryAddress(address uint16) *byte {
+
 	switch {
-	case address < RomBank0Size:
+	case address < SwitchableRomBankStartAddress:
 		if m.Boot {
-			return m.BootRomBank0[address]
+			return &m.BootRomBank0[address]
 		} else {
-			return m.RomBank0[address]
+			return &m.RomBank0[address]
 		}
-	case address < SwitchableRomBankSize:
-		return m.SwitchableRomBank[address-SwitchableRomBankStartAddress]
-	case address < VideoRamSize:
-		return m.VideoRam[address-VideoRamStartAddress]
-	case address < SwitchableRamBankSize:
-		return m.SwitchableRamBank[address-SwitchableRamBankStartAddress]
-	case address < InternalRamSize:
-		return m.InternalRam[address-InternalRamStartAddress]
+	case address < VideoRamStartAddress:
+		return &m.SwitchableRomBank[address-SwitchableRomBankStartAddress]
+	case address < SwitchableRamBankStartAddress:
+		return &m.VideoRam[address-VideoRamStartAddress]
+	case address < InternalRamStartAddress:
+		return &m.SwitchableRamBank[address-SwitchableRamBankStartAddress]
+	case address < SwitchableRamStartAddress:
+		return &m.InternalRam[address-InternalRamStartAddress]
+	case address < EchoInternalRamStartAddress:
+		return &m.SwitchableRam[address-SwitchableRamStartAddress]
+	case address < OAMStartAddress:
+		offset := address - EchoInternalRamStartAddress
+		if offset < InternalRamSize {
+			return &m.InternalRam[offset]
+		} else {
+			return &m.SwitchableRam[offset-InternalRamSize]
+		}
+	case address < EmptyIO1StartAddress:
+		return &m.OAM[address-OAMStartAddress]
+	case address < IOPortStartAddress:
+		return &m.EmptyIO1[address-EmptyIO1StartAddress]
+	case address < HighRamStartAddress:
+		return &m.IOPort[address-IOPortStartAddress]
+	case address < IEStartAddress:
+		return &m.HighRam[address-HighRamStartAddress]
+	case address < 0xFFFF:
+		return &m.IE[0]
 	default:
 		fmt.Printf("Invalid memory address: %x \n", address)
 		panic("Invalid memory address")
@@ -120,23 +116,21 @@ func (m *Memory) Read(address uint16) byte {
 
 }
 
-// Write writes a byte to the specified memory address
-func (m *Memory) Write(address uint16, value byte) {
+// Read returns a byte from the specified memory address
+func (m *Memory) Read(address uint16) byte {
+	return *m.getMemoryAddress(address)
 
 }
 
-// LoadPRGROM loads the program ROM into memory
-//func (m *Memory) LoadPRGROM(prgROM []byte) {
-// Copy PRG ROM data into the appropriate location in cartridge space
-// Typically starting at 0x8000, but this is a simplification
-// In a real implementation, this would depend on the mapper
-//	for i := 0; i < len(prgROM) && i < len(m.ROMCartridgeSpace); i++ {
-//		m.ROMCartridgeSpace[i] = prgROM[i]
-//	}
-//}
+// Write writes a byte to the specified memory address
+func (m *Memory) Write(address uint16, value byte) {
+	memoryValue := m.getMemoryAddress(address)
+
+	*memoryValue = value
+}
 
 // ReadWord reads a 16-bit word from the specified memory address
-// NES is little-endian, so the first byte is the low byte
+// gb is little-endian, so the first byte is the low byte
 func (m *Memory) ReadWord(address uint16) uint16 {
 	low := uint16(m.Read(address))
 	high := uint16(m.Read(address + 1))
@@ -147,17 +141,4 @@ func (m *Memory) ReadWord(address uint16) uint16 {
 func (m *Memory) WriteWord(address uint16, value uint16) {
 	m.Write(address, byte(value&0xFF))
 	m.Write(address+1, byte(value>>8))
-}
-
-func (m *Memory) ReadAddressIndirectPageBoundaryBug(address uint16) uint16 {
-	var addr uint16
-	if (address & 0x00FF) == 0x00FF { // Si el puntero termina en XXFF, aplica el bug
-		low := m.Read(address)
-		high := m.Read(address & 0xFF00) // Lee desde XX00 en vez de XXFF+1
-		addr = uint16(high)<<8 | uint16(low)
-	} else {
-		addr = m.ReadWord(address) // Lectura normal
-	}
-
-	return addr
 }

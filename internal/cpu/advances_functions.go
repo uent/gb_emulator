@@ -1,5 +1,25 @@
 package cpu
 
+// 0xBC11: Rotate the contents of register C to the left. That is, the contents of bit 0 are copied to bit 1, and the previous contents of bit 1 (before the copy operation) are copied to bit 2. The same operation is repeated in sequence for the rest of the register. The previous contents of the carry (CY) flag are copied to bit 0 of register C.
+// TODO: check comment
+// TODO: check code
+func RLC(cpu *Cpu) uint8 {
+
+	lastBit := cpu.C >> 7
+
+	cpu.C = cpu.C << 1
+
+	cpu.C = cpu.C | lastBit
+
+	cpu.ZFlag = cpu.C == 0
+	cpu.NFlag = false
+	cpu.HFlag = false
+	cpu.CFlag = lastBit == 1
+
+	cpu.MovePC(2)
+	return 2
+}
+
 // 0xBC7C: Copy the complement of the contents of bit 7 in register H to the Z flag of the program status word (PSW).
 func Bit7H(cpu *Cpu) uint8 {
 	bit := (cpu.H >> 7) & 1

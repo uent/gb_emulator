@@ -44,6 +44,7 @@ func NewCPU() *Cpu {
 
 func (cpu *Cpu) initParams() {
 	cpu.PC = 0
+	cpu.SP = 0xFFFE
 	cpu.Boot = true
 	// TODO
 }

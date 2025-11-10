@@ -23,6 +23,7 @@ gb-emulator/
 │   │   ├── instruction_functions.go  # Implementación de instrucciones básicas
 │   │   ├── instruction_map.go        # Mapeo de opcodes y tabla CB
 │   │   ├── advances_functions.go     # Instrucciones avanzadas (prefijo CB)
+│   │   ├── stack.go                  # Operaciones de stack (push/pop)
 │   │   └── utils.go                  # Utilidades para manipulación de bytes
 │   ├── memory/           # Gestión de memoria y mapeo
 │   │   ├── memory.go            # Sistema de memoria Game Boy completo
@@ -52,14 +53,19 @@ gb-emulator/
     - HFlag (Half Carry flag / BCD, bit 5 de AF) - Acarreo de los 4 bits bajos
     - CFlag (Carry flag, bit 4 de AF) - Acarreo/préstamo general
   - PC inicializado correctamente en 0x0000
+  - **SP inicializado en 0xFFFE** (valor correcto del Game Boy)
+  - **Stack completamente funcional** con operaciones push/pop de 8 y 16 bits
   - Sistema de ejecución de instrucciones por ciclos
   - Mapeo de opcodes y funciones de instrucción
   - Soporte para instrucciones de 2 bytes (prefijo 0xCB)
-  - **Instrucciones implementadas** (16 instrucciones base + 1 avanzada):
+  - **Instrucciones implementadas** (26 instrucciones base + 2 avanzadas):
     - 0x00: NOP - No Operation
     - 0x06: LD B, d8 - Load immediate en registro B
     - 0x0C: INC C - Incrementa registro C (con actualización de flags Z, N, H)
     - 0x0E: LD C, d8 - Load immediate en registro C
+    - 0x11: LD DE, d16 - Load immediate 16-bit en DE
+    - 0x17: RLA - Rotate A left through carry
+    - 0x1A: LD A, (DE) - Load en A desde memoria apuntada por DE
     - 0x20: JR NZ, s8 - Jump relativo si Z flag = 0
     - 0x21: LD HL, n16 - Load immediate 16-bit en HL
     - 0x26: LD H, d8 - Load immediate en registro H
@@ -68,8 +74,16 @@ gb-emulator/
     - 0x3E: LD A, d8 - Load immediate en registro A
     - 0x40: LD B, B - Load B en B
     - 0x41: LD B, C - Load C en B
+    - 0x45: LD B, L - Load L en B
+    - 0x4F: LD C, A - Load A en C
+    - 0x77: LD (HL), A - Store A en memoria apuntada por HL
     - 0xAF: XOR A - XOR de A consigo mismo (resultado siempre 0)
+    - 0xC1: POP BC - Pop del stack a BC
+    - 0xC5: PUSH BC - Push BC al stack
+    - 0xCD: CALL a16 - Call a dirección 16-bit
+    - 0xE0: LD (a8), A - Store A en 0xFF00 + a8
     - 0xE2: LD (C), A - Store A en dirección 0xFF00 + C (I/O ports)
+    - 0xCB11: RLC C - Rotate Left C
     - 0xCB7C: BIT 7, H - Test bit 7 del registro H
   - Utilidades implementadas:
     - MovePC() - Movimiento del Program Counter
@@ -78,23 +92,29 @@ gb-emulator/
     - calculateHalfFlagAdd() - Calcula half-carry flag para sumas
     - calculateHalfFlagSubtract() - Calcula half-carry flag para restas
     - calculateHalfFlagIncrement() - Calcula half-carry flag para incrementos
+    - bool2u8() - Convierte booleanos a uint8
 
 ### Memoria
 - Sistema de direccionamiento de 16-bit (0x0000 - 0xFFFF)
-- **Estado actual**: ✅ Implementado
-  - Mapa de memoria completo del Game Boy:
+- **Estado actual**: ✅ Implementado y refinado
+  - Mapa de memoria completo del Game Boy (corregido y preciso):
     - 0x0000-0x3FFF: ROM Bank #0 (16KB) / Boot ROM
     - 0x4000-0x7FFF: ROM Bank #1 switchable (16KB)
     - 0x8000-0x9FFF: Video RAM (8KB)
     - 0xA000-0xBFFF: External RAM switchable (8KB)
-    - 0xC000-0xDFFF: Work RAM (8KB)
-    - 0xE000-0xFDFF: Echo RAM
+    - 0xC000-0xCFFF: Work RAM Bank 0 (4KB)
+    - 0xD000-0xDFFF: Work RAM Bank 1 switchable (4KB)
+    - 0xE000-0xFDFF: Echo RAM (7680 bytes, mirror de WRAM)
     - 0xFE00-0xFE9F: OAM (Sprite Attribute Memory)
-    - 0xFF00-0xFF4B: I/O Ports
-    - 0xFF80-0xFFFE: High RAM (HRAM)
-    - 0xFFFF: Interrupt Enable Register
-  - Lectura de memoria implementada con soporte para Boot ROM
-  - Sistema de bancos de memoria preparado
+    - 0xFEA0-0xFEFF: Prohibido (no usable)
+    - 0xFF00-0xFF7F: I/O Ports
+    - 0xFF80-0xFFFE: High RAM (HRAM, 127 bytes)
+    - 0xFFFF: Interrupt Enable Register (IE)
+  - **Lectura y escritura de memoria completamente funcionales**
+  - Función getMemoryAddress() optimizada con punteros
+  - Soporte para Boot ROM con switch automático
+  - Echo RAM correctamente mapeado a WRAM
+  - Sistema de bancos de memoria preparado (pendiente MBC)
 
 ### GPU/PPU (Picture Processing Unit)
 - Resolución: 160x144 píxeles
@@ -205,26 +225,28 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 
 ### ✅ Completado
 - Estructura base del proyecto
-- Sistema de CPU con registros, flags (Z, N, H, C) documentados y PC inicializado
+- Sistema de CPU con registros, flags (Z, N, H, C) documentados, PC y SP inicializados
+- **Stack completamente funcional**: push/pop de 8 y 16 bits (stack.go)
 - Sistema de ejecución de instrucciones con soporte para opcodes de 1 y 2 bytes
-- Mapa de memoria completo del Game Boy (adaptado correctamente desde NES)
+- **Mapa de memoria refinado y preciso** (WRAM correctamente dividido en bancos, Echo RAM, IE register)
+- **Lectura y escritura de memoria completamente funcionales**
 - Carga de ROMs y Boot ROM en memoria
 - Dependencias de rendering (Ebiten v2)
-- **17 instrucciones del CPU** implementadas (LD, INC, JR, XOR, BIT)
-- Funciones auxiliares para manipulación de datos (split/join bytes, half-carry flags)
+- **28 instrucciones del CPU** implementadas (LD, INC, JR, XOR, BIT, PUSH, POP, CALL, RLA, RLC)
+- Funciones auxiliares para manipulación de datos (split/join bytes, half-carry flags, bool2u8)
 - Método MovePC para gestión del Program Counter
-- Tabla de instrucciones avanzadas (prefijo CB)
+- Tabla de instrucciones avanzadas (prefijo CB) con 2 instrucciones
 - Sistema de cálculo de half-carry flags para operaciones aritméticas
+- Instrucciones de control de flujo: CALL con manejo automático del stack
 
 ### ⚠️ En Desarrollo
 - Sistema de Game Boy principal (estructuras base implementadas, integración con Boot ROM)
-- Escritura de memoria (función Write pendiente de completar)
-- Sistema de bancos de memoria conmutables (MBC)
-- Expansión del set de instrucciones del CPU (~230 restantes)
+- Sistema de bancos de memoria conmutables (MBC1, MBC3, MBC5)
+- Expansión del set de instrucciones del CPU (~220 restantes)
 
 ### ❌ Pendiente
-- Implementación completa del set de instrucciones del CPU (~230 instrucciones restantes)
-- Instrucciones CB restantes (~250 instrucciones)
+- Implementación completa del set de instrucciones del CPU (~220 instrucciones restantes)
+- Instrucciones CB restantes (~254 instrucciones)
 - PPU/GPU para rendering de gráficos
 - Sistema de entrada (controles/joypad)
 - Audio (APU)
@@ -233,16 +255,24 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 - Debugging tools
 - Tests unitarios y de integración
 - Loop principal del emulador funcional
+- Instrucciones de retorno (RET, RETI) y otras de control de flujo
 
 ### 📝 Notas Técnicas
-- ✅ El mapa de memoria ya está correctamente adaptado al Game Boy (no más referencias a NES)
+- ✅ El mapa de memoria completamente adaptado al Game Boy con direccionamiento preciso
+- ✅ **Stack Pointer inicializado en 0xFFFE** (valor estándar del Game Boy al inicio)
+- ✅ **Sistema de stack funcional** con operaciones push/pop correctamente implementadas
 - ✅ Flags del CPU implementados como booleanos separados con documentación detallada
 - ✅ Soporte para instrucciones de 2 bytes con prefijo CB implementado
 - ✅ Funciones auxiliares para conversión byte ↔ uint16 (little-endian)
 - ✅ Sistema de cálculo de half-carry flag para operaciones aritméticas (suma, resta, incremento)
 - ✅ Tabla de instrucciones simplificada (uso de inicialización de structs sin puntero explícito)
 - ✅ Directorio `roms/` disponible para almacenar archivos ROM (.gb, .gbc)
-- La función `Write()` en memory.go necesita implementación completa
+- ✅ **Función `Write()` completamente implementada** con manejo optimizado de punteros
+- ✅ **getMemoryAddress()** retorna punteros para lectura y escritura eficiente
+- ✅ WRAM dividido correctamente en Bank 0 (4KB) y Bank 1 (4KB) switchable
+- ✅ Echo RAM implementado como espejo de WRAM (direcciones 0xE000-0xFDFF)
+- ✅ Registro IE (Interrupt Enable) en 0xFFFF correctamente implementado
+- ✅ Instrucciones de control de flujo: CALL implementado con push automático del PC
 - Se recomienda revisar el archivo `gbctr.pdf` para especificaciones técnicas del hardware
 - El sistema soporta Boot ROM para emular el inicio real del Game Boy
 - Referencias de documentación integradas en el código:
