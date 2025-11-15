@@ -58,8 +58,9 @@ gb-emulator/
   - Sistema de ejecución de instrucciones por ciclos
   - Mapeo de opcodes y funciones de instrucción
   - Soporte para instrucciones de 2 bytes (prefijo 0xCB)
-  - **Instrucciones implementadas** (26 instrucciones base + 2 avanzadas):
-    - 0x00: NOP - No Operation
+  - **Instrucciones implementadas** (27 instrucciones base + 2 avanzadas):
+    - 0x00: NOP - No Operation (mueve PC, retorna 1 ciclo)
+    - 0x05: DEC B - Decrementa registro B (con actualización de flags Z, N, H)
     - 0x06: LD B, d8 - Load immediate en registro B
     - 0x0C: INC C - Incrementa registro C (con actualización de flags Z, N, H)
     - 0x0E: LD C, d8 - Load immediate en registro C
@@ -92,6 +93,7 @@ gb-emulator/
     - calculateHalfFlagAdd() - Calcula half-carry flag para sumas
     - calculateHalfFlagSubtract() - Calcula half-carry flag para restas
     - calculateHalfFlagIncrement() - Calcula half-carry flag para incrementos
+    - calculateHalfFlagDecrement() - Calcula half-carry flag para decrementos
     - bool2u8() - Convierte booleanos a uint8
 
 ### Memoria
@@ -123,9 +125,13 @@ gb-emulator/
 - **Estado actual**: ❌ Pendiente de implementación
 
 ### Rendering y Ventana
-- **Estado actual**: ✅ Dependencias instaladas
+- **Estado actual**: ✅ Loop principal implementado
   - Ebiten v2 para rendering 2D
-  - Gestión de ventana y entrada de usuario
+  - Estructura Game con métodos Update, Draw y Layout
+  - Loop principal ejecutándose (~70224 ciclos por frame)
+  - Ventana configurada (512x480) con pantalla lógica de 160x144
+  - Gestión de pausa implementada
+  - Rendering básico (pantalla negra, pendiente integración con PPU)
 
 ### Cartridge / ROM
 - **Estado actual**: ✅ Implementado (básico)
@@ -231,31 +237,32 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 - **Mapa de memoria refinado y preciso** (WRAM correctamente dividido en bancos, Echo RAM, IE register)
 - **Lectura y escritura de memoria completamente funcionales**
 - Carga de ROMs y Boot ROM en memoria
-- Dependencias de rendering (Ebiten v2)
-- **28 instrucciones del CPU** implementadas (LD, INC, JR, XOR, BIT, PUSH, POP, CALL, RLA, RLC)
-- Funciones auxiliares para manipulación de datos (split/join bytes, half-carry flags, bool2u8)
+- **Loop principal del emulador funcional** con Ebiten v2
+- **29 instrucciones del CPU** implementadas (LD, INC, DEC, JR, XOR, BIT, PUSH, POP, CALL, RLA, RLC)
+- Funciones auxiliares para manipulación de datos (split/join bytes, half-carry flags para add/sub/inc/dec, bool2u8)
 - Método MovePC para gestión del Program Counter
 - Tabla de instrucciones avanzadas (prefijo CB) con 2 instrucciones
-- Sistema de cálculo de half-carry flags para operaciones aritméticas
+- Sistema de cálculo de half-carry flags para operaciones aritméticas (suma, resta, incremento, decremento)
 - Instrucciones de control de flujo: CALL con manejo automático del stack
+- **Game loop ejecutándose** con Update (70224 ciclos/frame), Draw y Layout implementados
 
 ### ⚠️ En Desarrollo
-- Sistema de Game Boy principal (estructuras base implementadas, integración con Boot ROM)
+- Integración del PPU con el loop principal (estructura lista, pendiente rendering real)
 - Sistema de bancos de memoria conmutables (MBC1, MBC3, MBC5)
-- Expansión del set de instrucciones del CPU (~220 restantes)
+- Expansión del set de instrucciones del CPU (~219 restantes)
 
 ### ❌ Pendiente
-- Implementación completa del set de instrucciones del CPU (~220 instrucciones restantes)
+- Implementación completa del set de instrucciones del CPU (~219 instrucciones restantes)
 - Instrucciones CB restantes (~254 instrucciones)
-- PPU/GPU para rendering de gráficos
+- PPU/GPU para rendering de gráficos (tiles, sprites, backgrounds)
 - Sistema de entrada (controles/joypad)
 - Audio (APU)
 - Sistema de interrupciones completo
 - Timers
 - Debugging tools
 - Tests unitarios y de integración
-- Loop principal del emulador funcional
 - Instrucciones de retorno (RET, RETI) y otras de control de flujo
+- Sincronización precisa de timing (actualmente ~70224 ciclos fijos por frame)
 
 ### 📝 Notas Técnicas
 - ✅ El mapa de memoria completamente adaptado al Game Boy con direccionamiento preciso
@@ -264,8 +271,9 @@ Este proyecto está en fase inicial de desarrollo. Componentes actuales:
 - ✅ Flags del CPU implementados como booleanos separados con documentación detallada
 - ✅ Soporte para instrucciones de 2 bytes con prefijo CB implementado
 - ✅ Funciones auxiliares para conversión byte ↔ uint16 (little-endian)
-- ✅ Sistema de cálculo de half-carry flag para operaciones aritméticas (suma, resta, incremento)
+- ✅ Sistema de cálculo de half-carry flag para operaciones aritméticas (suma, resta, incremento, decremento)
 - ✅ Tabla de instrucciones simplificada (uso de inicialización de structs sin puntero explícito)
+- ✅ **Loop principal del emulador ejecutándose** con ciclos por frame (~70224 ciclos)
 - ✅ Directorio `roms/` disponible para almacenar archivos ROM (.gb, .gbc)
 - ✅ **Función `Write()` completamente implementada** con manejo optimizado de punteros
 - ✅ **getMemoryAddress()** retorna punteros para lectura y escritura eficiente
