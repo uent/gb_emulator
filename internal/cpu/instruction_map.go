@@ -11,6 +11,7 @@ type Instruction struct {
 
 var InstructionTable = map[byte]*Instruction{
 	0x00: {Opcode: 0x00, Mnemonic: "NOP", IsIllegal: false, ExecuteFunc: NOP},
+	0x05: {Opcode: 0x05, Mnemonic: "DecB", IsIllegal: false, ExecuteFunc: DecB},
 	0x06: {Opcode: 0x06, Mnemonic: "LDBImmediate", IsIllegal: false, ExecuteFunc: LDBImmediate},
 	0x0C: {Opcode: 0x0C, Mnemonic: "INCC", IsIllegal: false, ExecuteFunc: INCC},
 	0x0E: {Opcode: 0x0E, Mnemonic: "LDCImmediate", IsIllegal: false, ExecuteFunc: LDCImmediate},

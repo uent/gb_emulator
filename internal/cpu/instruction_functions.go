@@ -13,7 +13,21 @@ package cpu
 // 0x00: No operation. increment the pc on 1
 func NOP(cpu *Cpu) uint8 {
 
-	return 0
+	cpu.MovePC(1)
+	return 1
+}
+
+// 0x05: Decrement the contents of register B by 1.
+func DecB(cpu *Cpu) uint8 {
+	oldB := cpu.B
+	cpu.B--
+
+	cpu.ZFlag = cpu.B == 0
+	cpu.NFlag = true
+	cpu.HFlag = calculateHalfFlagDecrement(oldB)
+
+	cpu.MovePC(1)
+	return 1
 }
 
 // 0x41: Load the contents of register C into register B.

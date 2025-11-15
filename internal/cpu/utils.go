@@ -24,6 +24,10 @@ func calculateHalfFlagIncrement(oldValue byte) bool {
 	return (oldValue&0x0F)+1 > 0x0F
 }
 
+func calculateHalfFlagDecrement(oldValue byte) bool {
+	return (oldValue & 0x0F) == 0x00
+}
+
 func bool2u8(b bool) uint8 {
 	if b {
 		return 1
